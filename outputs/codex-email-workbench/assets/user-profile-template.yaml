@@ -5,8 +5,9 @@ language: "zh-CN"
 default_mailbox: ""
 mailbox_owner: ""
 send_mode: "draft_only"
-batch_size: 20
-daily_limit_per_mailbox: 50
+batch_size: ""
+daily_limit_per_mailbox: ""
+send_rate_policy: "adaptive_connector_aware"
 followup_workdays: [2, 4, 7]
 max_followups: 3
 allowed_send_window: ""
