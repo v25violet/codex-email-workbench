@@ -1,0 +1,14 @@
+timezone: "Asia/Shanghai"
+display_name: ""
+signature: ""
+language: "zh-CN"
+default_mailbox: ""
+mailbox_owner: ""
+send_mode: "draft_only"
+batch_size: 20
+daily_limit_per_mailbox: 50
+followup_workdays: [2, 4, 7]
+max_followups: 3
+allowed_send_window: ""
+storage_mode: "local_csv"
+last_inbox_scan_at: ""
