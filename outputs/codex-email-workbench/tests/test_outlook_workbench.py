@@ -282,7 +282,7 @@ class OutlookWorkbenchTests(unittest.TestCase):
             workbench.close()
         for path in Path(self.temp.name).rglob("*"):
             if path.is_file():
-            self.assertNotIn(b"fixture-credential", path.read_bytes())
+                self.assertNotIn(b"fixture-credential", path.read_bytes())
 
     def test_gmail_client_uses_profile_drafts_and_reply_thread_without_network(self) -> None:
         profile_opener = QueueOpener([{"emailAddress": "gmail-one@example.test"}])
