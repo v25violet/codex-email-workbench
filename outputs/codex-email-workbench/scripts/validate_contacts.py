@@ -19,6 +19,7 @@ REQUIRED_COLUMNS = (
     "company",
     "owner",
     "mailbox",
+    "sender_email",
     "campaign_id",
     "step",
     "status",
@@ -139,6 +140,9 @@ def validate(path: Path) -> tuple[dict[str, object], int]:
         email = _normalized_email(row.get("email"))
         if email and not EMAIL_RE.fullmatch(email):
             row_errors.append("invalid_email")
+        sender_email = _normalized_email(row.get("sender_email"))
+        if sender_email and not EMAIL_RE.fullmatch(sender_email):
+            row_errors.append("invalid_sender_email")
         status = _normal(row.get("status"))
         if status:
             if status not in ALLOWED_STATUSES:
