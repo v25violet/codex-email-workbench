@@ -1,6 +1,6 @@
-contact_id,email,name,company,owner,mailbox,sender_email,campaign_id,step,status,last_sent_at,last_reply_at,next_followup_at,stop_reason,do_not_contact,thread_hint,notes
-c-101,bad-email,Bad Email,Example Co,owner-a,mailbox-a,outreach-a@example.test,camp-101,0,draft,,,,,false,,
-c-102,duplicate@example.test,Duplicate One,Example Co,owner-a,mailbox-a,outreach-a@example.test,camp-101,0,draft,,,,,false,,
-c-102,duplicate@example.test,Duplicate Two,Example Co,owner-b,mailbox-a,outreach-b@example.test,camp-101,0,draft,,,,,false,,
-c-103,suppressed@example.test,Suppressed,Example Co,owner-a,mailbox-a,outreach-a@example.test,camp-101,0,draft,,,,,true,,
-c-104,invalid-status@example.test,Invalid Status,Example Co,owner-a,mailbox-a,outreach-b@example.test,camp-101,0,unknown,,,,,false,,
+contact_id,email,name,company,owner,provider,account_key,campaign_id,step,status,last_sent_at,last_reply_at,next_followup_at,stop_reason,do_not_contact,thread_hint,notes
+c-101,bad-email,Bad Email,Example Co,owner-a,outlook,account-a@example.test,camp-101,0,draft,,,,,false,,
+c-102,duplicate@example.test,Duplicate One,Example Co,owner-a,gmail,account-a@example.test,camp-101,0,draft,,,,,false,,
+c-102,duplicate@example.test,Duplicate Two,Example Co,owner-b,gmail,account-b@example.test,camp-101,0,draft,,,,,false,,
+c-103,suppressed@example.test,Suppressed,Example Co,owner-a,outlook,account-a@example.test,camp-101,0,draft,,,,,true,,
+c-104,invalid-status@example.test,Invalid Status,Example Co,owner-a,other,account-b@example.test,camp-101,0,unknown,,,,,false,,

@@ -47,7 +47,7 @@ class ValidatorTests(unittest.TestCase):
         self.assertEqual(payload["suppressed_count"], 1)
         self.assertGreaterEqual(payload["duplicate_email_count"], 2)
         error_codes = {item["code"] for item in payload["errors"] if "code" in item}
-        self.assertTrue({"invalid_email", "duplicate_unique_key", "invalid_status"} <= error_codes)
+        self.assertTrue({"invalid_email", "duplicate_unique_key", "invalid_provider", "invalid_status"} <= error_codes)
         self.assertEqual(before, path.read_bytes())
 
     def test_normal_campaign_state_passes(self) -> None:

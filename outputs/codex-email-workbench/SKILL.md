@@ -1,35 +1,31 @@
 ---
 name: codex-email-workbench
-description: "Use for Gmail/Outlook contact imports, Mailhub-backed multi-account mail workflows, personalized email drafts or controlled outbound batches, inbox and reply triage, reply drafting, and follow-up workflows; applies to outreach campaigns and ordinary single-thread outreach tasks, not unrelated bulk mailing."
+description: "Use for Codex-guided local Outlook/Hotmail and Gmail work with multiple user-authorized accounts: OAuth setup, mailbox reads, drafts, approved sends, reply checks, and follow-up candidates."
 ---
 
-# Codex 邮箱工作台
+# Codex 多邮箱工作台
 
-这是一个以“先授权、再校验、后预览、再批准”为核心的 Gmail/Outlook 外联工作台。它只使用当前 Codex 中已经连接且实际可用的邮箱能力；不保存密码、OAuth token、Cookie 或真实邮箱数据，不绕过连接器，也不部署服务器。
+本 Skill 支持 Outlook/Hotmail 和 Gmail。运行时由 Codex 引导本地 `scripts/outlook_workbench.py`：Outlook 使用 MSAL + Microsoft Graph，Gmail 使用 Google OAuth + Gmail API。两个提供商都支持多个独立账号；不使用外置后端、容器或密码登录。
 
-## 入口与模式路由
+## 入口
 
-- 用户首次使用或说“开始设置”时，先读取 [references/onboarding.md](references/onboarding.md)，再按需读取所选提供商的 `gmail-notes.md` 或 `outlook-notes.md`。
-- 用户需要登录、授权、切换账号或提供配置文档时，先读取 [references/authorization-guide.md](references/authorization-guide.md)。账号密码必须由用户在官方授权页、连接器弹窗或 Mailhub 本地设置页输入，不能粘贴到聊天里，也不能从文档中提取后代登录。
-- 联系人导入、去重、活动计划和发送前审批，读取 [references/campaign-workflow.md](references/campaign-workflow.md)；安全、授权或重试判断同时读取 [references/safety-and-compliance.md](references/safety-and-compliance.md)。可复制的活动 brief、联系人和 profile 模板在 `assets/` 中。
-- 用户提到 Mailhub、自托管、多域名聚合或多账号发信时，先读取 [references/mailhub-notes.md](references/mailhub-notes.md)，区分 IMAP 收信聚合、sender identity 和实际 SMTP 发信通道。
-- 新邮件扫描、回信分类、完整线程和回复草稿，读取 [references/inbox-and-replies.md](references/inbox-and-replies.md)，再读取对应提供商说明。
-- 到期 follow-up 候选和停止规则，读取 [references/followup-rules.md](references/followup-rules.md)；不要把候选清单当成已发送结果。
-- 用户询问定期任务时，只读取并提供 [references/automation-prompts.md](references/automation-prompts.md) 中的模板；除非用户另行明确要求，不创建自动化。
+- “开始设置”或 `$codex-email-workbench 开始设置 Gmail 和 Outlook 各10个账号`：读取 [references/onboarding.md](references/onboarding.md) 和 [references/oauth-setup.md](references/oauth-setup.md)，一次只推进一个提供商、一个账号授权阶段。
+- 需要读取邮件、建草稿、检查回信或生成回复：读取 [references/operations.md](references/operations.md)，再按 `provider` 读取 [references/outlook-notes.md](references/outlook-notes.md) 或 [references/gmail-notes.md](references/gmail-notes.md)。
+- 导入联系人、生成样本或准备发送计划：读取 [references/campaign-workflow.md](references/campaign-workflow.md)，并运行 `scripts/validate_contacts.py` 与 `scripts/validate_campaign_state.py`。
+- 回信分类读取 [references/inbox-and-replies.md](references/inbox-and-replies.md)；follow-up 候选和停止规则只读取 [references/followup-rules.md](references/followup-rules.md)。
+- 安全判断读取 [references/safety-and-compliance.md](references/safety-and-compliance.md)。
 
-默认时区为 `Asia/Shanghai`，默认只创建草稿；发送不设 Skill 固定的单批或每日数量上限，由执行时根据连接器、邮箱反馈和用户自定义偏好自适应限速。follow-up 最多 3 次，间隔 2、4、7 个工作日。安装者可在自己的 profile 或台账中修改这些偏好，不能改写 Skill 包内模板。
+## 必须保持的不变量
 
-## 权限与不变量
+- 每个邮箱操作都必须显式指定已验证的 `provider` 和 `account_key`；禁止使用缓存中的第一个账号、浏览器当前账号或隐式 `from` 猜测发件人。
+- 每个账号必须由用户本人在对应官方 OAuth 页面登录并完成 MFA。Codex 不索取、代填或保存密码、MFA、恢复码、Cookie 或 token；两个提供商的 OAuth 缓存都只能在 macOS Keychain，Keychain 不可用时停止。
+- Outlook 授权完成后必须调用 Graph `/me`，Gmail 授权完成后必须调用 Gmail `/users/me/profile`；只有返回邮箱与 `account_key` 完全匹配才登记为已授权账号。
+- 默认只创建草稿。发送前必须展示实际账号、收件人、主题、最终正文、批量数量和发送节奏；只有当前预览被明确批准，且批准摘要仍匹配，才可发送。
+- 发送计划使用幂等键和本地台账防止重跑重复发送。中断、账号不匹配、认证失败、限流、退信、退订、拒绝、人工暂停或任何已匹配回信都停止相关后续动作。
+- `isRead` 和其他打开信号不代表外部收件人已读；第一版不做外部打开状态判断。
 
-- 只读搜索、线程读取、分类和报表在用户请求且连接器允许的范围内执行；已读、打开信号只能作辅助信息。
-- 本地台账、计划和草稿属于内部写入；创建草稿必须明确报告“已创建草稿，未发送”，不得把草稿描述为已发送。
-- 外部发送必须有明确授权；单封发送前确认收件人、主题和最终正文。批量发送必须依次完成台账校验、退信/退订/回信检查、5 封真实变量替换样本预览、发件邮箱/数量/发送节奏确认和人工批准。发送过程中按连接器反馈自适应分批、暂停和降速，不绕过服务商限流或账号策略。
-- 多账号发送必须在每批前验证实际发件身份：Outlook 连接器只使用当前已授权邮箱；Mailhub 按联系人表的 `sender_email` 列，只使用已配置且验证通过的 sender identity 和对应 delivery transport。不能把 sender identity 当成邮箱登录，也不能用 Skill 读取、保存或轮换密码。
-- 执行发送前重新读取最新台账与停止状态，不能依赖对话中旧的联系人状态。回信、拒绝、退订、硬退信、人工暂停和达到次数上限都阻止后续 follow-up；不确定匹配只能进入人工确认。
-- 联系人、模板或发件邮箱变化会使旧审批失效。任务中断后重跑必须先重新读取台账，已完成步骤不得重复发送。
+## 运行边界
 
-## 连接器不可用时的诚实降级
+Skill 包只包含脚本、模板、文档和 mock 测试。个人 `client_id`、账号清单、Keychain 引用、SQLite 台账和运行计划都放在安装者本机，不提交到 GitHub。没有真实授权或用户批准时，只能做本地校验、计划和草稿文本工作。
 
-如果 Gmail/Outlook 插件未连接、不可访问、权限不足或账号不匹配，停止邮箱动作，说明需要用户本人完成连接或修正账号；可以继续做本地 CSV 校验、活动计划、样本预览和回复草稿文本，但不能声称搜索、创建草稿或发送已经完成。若连接器只支持草稿，就只建草稿并明确未发送；若定时任务不能调用邮箱连接器，就提供提醒用户打开任务的降级方案。认证、权限、限流或瞬时错误不通过浏览器或其他账号绕过；瞬时错误最多自动重试一次，随后输出失败清单并停止。
-
-显式调用示例：`$codex-email-workbench 开始设置`。
+显式调用示例：`$codex-email-workbench 开始设置 Gmail 和 Outlook 各10个账号`。

@@ -1,39 +1,89 @@
-# Codex 邮箱工作台安装说明
+# Codex 多邮箱工作台安装说明
 
 ## 作用与边界
 
-这个 Skill 帮你在自己的 Codex 中连接 Gmail 或 Outlook，校验联系人、生成个性化邮件、创建草稿、在批准后执行小批次发送、扫描回信、生成回复草稿和管理 follow-up 候选。默认只创建草稿；它不保存邮箱密码或 OAuth token，不抓取联系人，不提供无限量群发，不部署 SMTP/IMAP/追踪服务器，也不把“已读”当作可靠转化指标。
+这是一个本地 Python helper，不启动后台、不部署远程服务、不使用密码认证或 Codex 原生连接器切换账号。它通过 MSAL + Microsoft Graph 管理多个 Outlook/Hotmail 账号，通过 Google OAuth + Gmail API 管理多个 Gmail 账号。
+
+默认只创建草稿。发送必须经过当前预览、人工批准、对应提供商账号复核和幂等台账检查。不会连接真实邮箱或发送测试邮件，直到用户明确运行真实操作。
 
 ## 安装
 
-### 从 zip 安装
+1. 下载并解压 `codex-email-workbench.zip`。
+2. 将其中的 `codex-email-workbench/` 放进个人 Codex Skills 目录，通常为 `~/.codex/skills/`。
+3. macOS 终端安装唯一运行依赖：
 
-1. 下载 `codex-email-workbench.zip` 并解压。
-2. 将解压后的 `codex-email-workbench/` 文件夹放入个人 Codex Skills 目录：通常是 `$CODEX_HOME/skills/`；未设置 `CODEX_HOME` 时通常是 `~/.codex/skills/`。
-3. 保持 `SKILL.md` 位于该文件夹的第一层，不要只复制文件夹里的内容。
+   ```bash
+   python3 -m pip install --user -r ~/.codex/skills/codex-email-workbench/scripts/requirements.txt
+   ```
 
-### 从 GitHub 安装
+4. 确认 macOS Keychain 命令可用：
 
-下载或克隆包含 `codex-email-workbench/` 文件夹的仓库，将该文件夹复制到同一个个人 Skills 目录。不要把用户自己的 profile、联系人 CSV 或运行日志提交回仓库。
+   ```bash
+   python3 ~/.codex/skills/codex-email-workbench/scripts/outlook_workbench.py env
+   ```
 
-安装后刷新或重启 Codex，使 Skill 列表重新加载。校验文件只用于核对下载完整性，不是邮箱授权凭据。
+   只有 `msal`、`google_oauth` 和 `keychain` 都显示 `available` 才继续。Keychain 不可用时不会降级到明文文件。
 
-## 第一次使用
+## 创建一个可支持个人 Microsoft 账号的 Entra 应用
 
-先在 Codex 输入：
+在 [Microsoft Entra admin center](https://entra.microsoft.com/) 中由你本人完成：
 
-`$codex-email-workbench 开始设置`
+1. App registrations → New registration。
+2. Supported account types 选择同时支持组织账号和个人 Microsoft 账号的选项。
+3. 创建后只记录 **Application (client) ID**；不要创建或提交 client secret。
+4. Authentication 中启用 Public client / mobile and desktop flows。
+5. API permissions → Microsoft Graph → Delegated permissions，添加 `User.Read`、`Mail.ReadWrite`、`Mail.Send`。
 
-按引导选择 Gmail 或 Outlook，并由你本人完成插件授权。Skill 不会索要密码。若使用共享/委派 Outlook 邮箱，确认目标邮箱所有者标识与实际发件邮箱一致。
+将 client ID 保存到本机配置；它不是密码：
 
-## 常见问题
+```bash
+python3 ~/.codex/skills/codex-email-workbench/scripts/outlook_workbench.py \
+  set-client-id <你的-Application-client-ID>
+```
 
-- **插件未连接：** 通过 Codex 的插件管理能力连接 Gmail 或 Outlook；连接完成前只能做本地校验和草稿文本规划。
-- **邮箱不匹配：** 浏览器 URL 中的 `/u/0/` 或 `/u/1/` 不是插件账号选择依据。停止操作，重新选择实际可访问的邮箱。
-- **只能建草稿：** 这是安全降级；草稿明确表示“未发送”，需你审核后自行发送或在明确批准后再执行。
-- **自动化不可用：** 使用 `references/automation-prompts.md` 的模板创建提醒；定时任务不能静默绕过连接器权限。
-- **权限不足：** 不通过浏览器、其他账号或重复重试绕过权限；检查连接账号及共享/委派权限后再运行。
+## 创建 Gmail OAuth 应用
 
-## 升级与卸载
+在 [Google Cloud Console](https://console.cloud.google.com/) 中启用 Gmail API，配置 OAuth consent screen，并创建 **Desktop app** OAuth client。下载 credentials JSON 到本机安全位置，不要复制进 Skill 目录或提交 GitHub：
 
-升级时只替换 Skill 包文件，不要覆盖个人工作目录中的 profile、联系人台账或活动数据。卸载 Skill 不等于撤销 Gmail/Outlook 授权；如需撤销授权，必须在 Codex 插件管理或对应邮箱账户设置中单独断开连接。
+```bash
+python3 ~/.codex/skills/codex-email-workbench/scripts/outlook_workbench.py \
+  set-google-credentials /你的安全路径/client_secret.json
+```
+
+helper 使用 Gmail delegated scope `https://www.googleapis.com/auth/gmail.modify`，同一个 Desktop OAuth client 可以逐个授权多个 Gmail 账号。
+
+## 首次设置
+
+在 Codex 中输入：
+
+```text
+$codex-email-workbench 开始设置 Gmail 和 Outlook 各10个账号
+```
+
+Codex 会逐个调用 `authorize --provider outlook|gmail --account-key <邮箱>`。每次在对应官方页面登录目标账号并完成 MFA；helper 随后调用对应 profile 验证邮箱。重复账号、错误账号或授权失败会暂停，重新运行会从本地台账继续，不重复已完成账号。
+
+本地状态默认位于 `~/.codex-email-workbench/`：配置和账号元数据不含 token，SQLite 只保存 provider、邮箱、账号标识、状态、进度和 Keychain 引用，MSAL/Google OAuth 缓存只在 macOS Keychain。每位使用者都必须使用自己的 OAuth 应用配置和本机安全存储。
+
+## 使用方式
+
+所有邮箱命令都必须带 `--provider` 和 `--account-key`：
+
+```bash
+python3 .../outlook_workbench.py accounts
+python3 .../outlook_workbench.py verify --provider gmail --account-key user@example.com
+python3 .../outlook_workbench.py inbox --provider outlook --account-key user@example.com
+python3 .../outlook_workbench.py draft --provider gmail --account-key user@example.com --to recipient@example.com --subject '主题' --body-file body.txt
+python3 .../outlook_workbench.py reply-draft --provider outlook --account-key user@example.com --message-id <id> --body-file reply.txt
+python3 .../outlook_workbench.py check-replies --provider gmail --account-key user@example.com
+python3 .../outlook_workbench.py followups --provider outlook --account-key user@example.com
+```
+
+批量发送使用本地计划 JSON：先由 Codex 展示最终预览，再运行 `approve-plan` 保存摘要，最后仅在用户明确批准后带 `--approval-digest ... --confirm` 运行 `send-plan`。草稿内容、计划和联系人数据不要放入 Skill 包或 GitHub。
+
+## 账号移除与撤销
+
+```bash
+python3 .../outlook_workbench.py remove --provider gmail --account-key user@example.com
+```
+
+这会移除该账号的本地 Keychain 缓存和本地元数据；如需全面撤销应用权限，还要在 Microsoft 账户的应用授权页面单独撤销。

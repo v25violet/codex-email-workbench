@@ -18,8 +18,8 @@ REQUIRED_COLUMNS = (
     "name",
     "company",
     "owner",
-    "mailbox",
-    "sender_email",
+    "provider",
+    "account_key",
     "campaign_id",
     "step",
     "status",
@@ -101,18 +101,19 @@ def validate(path: Path) -> tuple[dict[str, object], int]:
         return result, 2
 
     email_rows: defaultdict[str, list[int]] = defaultdict(list)
-    key_rows: defaultdict[tuple[str, str, str], list[int]] = defaultdict(list)
-    owner_rows: defaultdict[tuple[str, str], dict[str, set[int]]] = defaultdict(lambda: defaultdict(set))
+    key_rows: defaultdict[tuple[str, str, str, str], list[int]] = defaultdict(list)
+    owner_rows: defaultdict[tuple[str, str, str], dict[str, set[int]]] = defaultdict(lambda: defaultdict(set))
     status_counts: Counter[str] = Counter()
 
     for row_number, row in enumerate(rows, start=2):
         email = _normalized_email(row.get("email"))
         if email:
             email_rows[email].append(row_number)
-        key = (_normal(row.get("contact_id")), _normal(row.get("campaign_id")), _normal(row.get("step")))
+        provider = _normal(row.get("provider")).casefold()
+        key = (provider, _normal(row.get("contact_id")), _normal(row.get("campaign_id")), _normal(row.get("step")))
         if all(key):
             key_rows[key].append(row_number)
-        owner_key = (_normal(row.get("contact_id")), _normal(row.get("campaign_id")))
+        owner_key = (provider, _normal(row.get("contact_id")), _normal(row.get("campaign_id")))
         owner = _normal(row.get("owner"))
         if all(owner_key) and owner:
             owner_rows[owner_key][owner].add(row_number)
@@ -140,9 +141,12 @@ def validate(path: Path) -> tuple[dict[str, object], int]:
         email = _normalized_email(row.get("email"))
         if email and not EMAIL_RE.fullmatch(email):
             row_errors.append("invalid_email")
-        sender_email = _normalized_email(row.get("sender_email"))
-        if sender_email and not EMAIL_RE.fullmatch(sender_email):
-            row_errors.append("invalid_sender_email")
+        account_key = _normalized_email(row.get("account_key"))
+        if account_key and not EMAIL_RE.fullmatch(account_key):
+            row_errors.append("invalid_account_key")
+        provider = _normal(row.get("provider")).casefold()
+        if provider and provider not in {"outlook", "gmail"}:
+            row_errors.append("invalid_provider")
         status = _normal(row.get("status"))
         if status:
             if status not in ALLOWED_STATUSES:
@@ -159,10 +163,11 @@ def validate(path: Path) -> tuple[dict[str, object], int]:
             row_errors.append("invalid_do_not_contact")
         if email in duplicate_emails:
             row_errors.append("duplicate_email")
-        key = (_normal(row.get("contact_id")), _normal(row.get("campaign_id")), _normal(row.get("step")))
+        provider = _normal(row.get("provider")).casefold()
+        key = (provider, _normal(row.get("contact_id")), _normal(row.get("campaign_id")), _normal(row.get("step")))
         if all(key) and key in duplicate_keys:
             row_errors.append("duplicate_unique_key")
-        owner_key = (_normal(row.get("contact_id")), _normal(row.get("campaign_id")))
+        owner_key = (provider, _normal(row.get("contact_id")), _normal(row.get("campaign_id")))
         if all(owner_key) and owner_key in owner_conflicts:
             row_errors.append("owner_conflict")
 

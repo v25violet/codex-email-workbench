@@ -1,8 +1,8 @@
 interface:
-  display_name: "Codex 邮箱工作台"
-  short_description: "Gmail/Outlook 外联、回信分流与受控跟进工作台"
+  display_name: "Codex 多邮箱工作台"
+  short_description: "多 Outlook/Hotmail 与 Gmail 账号授权、草稿、回信与受控发送"
   brand_color: "#2563EB"
-  default_prompt: "使用 $codex-email-workbench 开始设置我的邮箱外联工作台。"
+  default_prompt: "使用 $codex-email-workbench 开始设置我的 Gmail 和 Outlook 邮箱工作台。"
 
 policy:
   allow_implicit_invocation: true

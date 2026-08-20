@@ -1,44 +1,27 @@
-# 授权引导
+# OAuth 授权引导
 
-## 核心原则
+## 不接收秘密
 
-Skill 可以引导用户完成授权、检查当前账号和读取非敏感配置，但不能接收、保存或代填邮箱密码、应用专用密码、OAuth token、Cookie、恢复码或 MFA 验证码。用户必须在官方授权页、连接器弹窗、Mailhub 设置页或本地 API 客户端中自己输入密钥。
+Codex 不索取、代填或保存密码、应用专用密码、client secret、OAuth token、Cookie、恢复码或 MFA 验证码。用户只在对应官方 OAuth 页面输入密码和 MFA。Microsoft client ID 和 Google Desktop OAuth credentials 路径是本地配置，不放进 Skill 包。
 
-用户提供的文档可以作为配置参考。允许读取：邮箱地址、显示名、SMTP/IMAP host、端口、TLS 类型、发件映射和非敏感备注；遇到密码、token、Cookie、密钥或验证码时跳过，不写入日志、台账、Skill 或 GitHub，并提醒用户撤回/轮换已暴露的密钥。
+MSAL 和 Google OAuth token cache 只能存 macOS Keychain，并按 `provider + account_key` 隔离。Keychain 不可用时直接停止；不允许把缓存写成 JSON、YAML、SQLite、日志、压缩包或 Git 文件。
 
-## Outlook 连接器授权
+## 首次配置
 
-1. 检查当前会话是否实际提供 Outlook Email 能力；推荐先调用 `get_profile`，不要把浏览器已登录状态当成连接器已授权。
-2. 未连接时，提示用户通过 Codex 的 Outlook 连接器/插件管理入口完成官方 OAuth 授权、同意权限并自行完成 MFA。不要让用户把密码粘贴到聊天里。
-3. 授权完成后重新调用 `get_profile`，记录连接器返回的当前邮箱、账号类型和可用权限；没有返回 profile 就不能声称授权成功。
-4. 每个批次开始前重新读取 profile。若当前邮箱与计划中的 `sender_email` 不一致，暂停，不猜测 `from`，也不通过浏览器槽位或其他账号绕过。
-5. 如果连接器只支持一个当前账号，Skill 不声称可以在三个 Outlook 账号之间自动切换；改为引导用户逐个授权（仅当连接器明确支持多连接）或使用 Mailhub 的多个 SMTP transport。
+1. 检查 `scripts/outlook_workbench.py env`，确认 MSAL、Google OAuth 和 Keychain 可用。
+2. Outlook 分支创建支持个人 Microsoft 账号的 Entra public client，并添加 delegated `User.Read`、`Mail.ReadWrite`、`Mail.Send`；不使用 client secret、用户名密码认证或 ROPC。
+3. Gmail 分支在 Google Cloud 创建 Desktop OAuth client，启用 Gmail API，保存 credentials JSON 路径；不把 JSON 文件复制进 Skill。
+4. 分别用 `set-client-id` 和 `set-google-credentials` 保存本地配置。
+5. 逐个运行 `authorize --provider outlook|gmail --account-key <目标邮箱>`。每次只处理一个提供商、一个账号。
+6. Outlook 授权后调用 Graph `/me`；Gmail 授权后调用 `/users/me/profile`。只有返回邮箱与目标邮箱完全匹配，才写入对应 Keychain 和本地账号清单。
+7. 返回“已完成 N/目标数量”，发现重复或错误账号时暂停。
 
-## Mailhub 多账号配置
-
-1. 用户在自己可控的 Mailhub 管理页或 API 客户端打开 `/docs`，使用管理员会话配置 `/api/config/smtp-transports`；密码只在该安全输入框或本地客户端中提交。
-2. 每个 transport 单独调用 `/api/config/smtp-transports/{id}/test`，只有测试状态为 `ok` 才能用于发送。
-3. 通过 `/api/senders` 创建或更新 sender identity，并让 `sender.email` 与 transport 的 `from_email` 完全一致。
-4. Skill 只读取 transport 的邮箱、启用状态、测试状态和掩码字段；不读取数据库、`.env` 或密码原文。
-5. Excel 每行的 `sender_email` 必须精确匹配一个已测试 sender identity；未知、停用、未测试或空白值直接阻止发送。
+重新运行时读取本地账号清单，从未完成账号继续；不要重新授权已验证账号。目标数量由用户输入，不写死为 10。
 
 ## 文档导入
 
-当用户提供 Excel、CSV、Markdown、TXT 或 PDF 配置文档时：
+可以读取文档中的邮箱地址、显示名、非敏感备注和计划映射；发现密码、token、Cookie、secret 或验证码时只报告“发现敏感字段，已跳过”，不复述、不保存、不提交。能读取文档不等于能自动登录。
 
-- 先报告发现的非敏感账号、发件映射和连接参数；不自动登录、不自动提交密码。
-- 发现疑似密码、token、Cookie 或验证码时只报告“发现敏感字段，已跳过”，不要在回复中复述原文。
-- 账号归属、发件身份、共享邮箱所有者或权限范围不明确时停止并请求用户在官方页面确认。
-- 文档中的联系人名单仍需经过校验、去重、退订/拒绝检查和发送闸门；文档本身不等于外发授权。
+## 结果报告
 
-## 授权结果格式
-
-完成后用以下字段报告，不展示任何秘密：
-
-```text
-授权方式：Outlook 连接器 / Mailhub SMTP transport
-当前账号：<连接器返回的邮箱或已配置的发件邮箱>
-权限状态：已授权 / 未授权 / 需要重新授权
-发件通道：已测试 / 未测试 / 测试失败
-可用发件身份：<邮箱列表>
-```
+只报告：提供商、目标账号、对应 profile 返回的邮箱、显示名、授权状态、Keychain 引用和下一步。不要展示授权响应、token 或完整错误响应。
