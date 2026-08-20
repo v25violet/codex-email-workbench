@@ -1,6 +1,6 @@
 ---
 name: codex-email-workbench
-description: "Use for Gmail/Outlook contact imports, personalized email drafts or controlled outbound batches, inbox and reply triage, reply drafting, and follow-up workflows; applies to outreach campaigns and ordinary single-thread outreach tasks, not unrelated bulk mailing."
+description: "Use for Gmail/Outlook contact imports, Mailhub-backed multi-account mail workflows, personalized email drafts or controlled outbound batches, inbox and reply triage, reply drafting, and follow-up workflows; applies to outreach campaigns and ordinary single-thread outreach tasks, not unrelated bulk mailing."
 ---
 
 # Codex 邮箱工作台
@@ -11,6 +11,7 @@ description: "Use for Gmail/Outlook contact imports, personalized email drafts o
 
 - 用户首次使用或说“开始设置”时，先读取 [references/onboarding.md](references/onboarding.md)，再按需读取所选提供商的 `gmail-notes.md` 或 `outlook-notes.md`。
 - 联系人导入、去重、活动计划和发送前审批，读取 [references/campaign-workflow.md](references/campaign-workflow.md)；安全、授权或重试判断同时读取 [references/safety-and-compliance.md](references/safety-and-compliance.md)。可复制的活动 brief、联系人和 profile 模板在 `assets/` 中。
+- 用户提到 Mailhub、自托管、多域名聚合或多账号发信时，先读取 [references/mailhub-notes.md](references/mailhub-notes.md)，区分 IMAP 收信聚合、sender identity 和实际 SMTP 发信通道。
 - 新邮件扫描、回信分类、完整线程和回复草稿，读取 [references/inbox-and-replies.md](references/inbox-and-replies.md)，再读取对应提供商说明。
 - 到期 follow-up 候选和停止规则，读取 [references/followup-rules.md](references/followup-rules.md)；不要把候选清单当成已发送结果。
 - 用户询问定期任务时，只读取并提供 [references/automation-prompts.md](references/automation-prompts.md) 中的模板；除非用户另行明确要求，不创建自动化。
@@ -22,6 +23,7 @@ description: "Use for Gmail/Outlook contact imports, personalized email drafts o
 - 只读搜索、线程读取、分类和报表在用户请求且连接器允许的范围内执行；已读、打开信号只能作辅助信息。
 - 本地台账、计划和草稿属于内部写入；创建草稿必须明确报告“已创建草稿，未发送”，不得把草稿描述为已发送。
 - 外部发送必须有明确授权；单封发送前确认收件人、主题和最终正文。批量发送必须依次完成台账校验、退信/退订/回信检查、5 封真实变量替换样本预览、发件邮箱/数量/发送节奏确认和人工批准。发送过程中按连接器反馈自适应分批、暂停和降速，不绕过服务商限流或账号策略。
+- 多账号发送必须在每批前验证实际发件身份：Outlook 连接器只使用当前已授权邮箱；Mailhub 只能使用已配置且验证通过的 sender identity 和 delivery transport。不能把 sender identity 当成邮箱登录，也不能用 Skill 读取、保存或轮换密码。
 - 执行发送前重新读取最新台账与停止状态，不能依赖对话中旧的联系人状态。回信、拒绝、退订、硬退信、人工暂停和达到次数上限都阻止后续 follow-up；不确定匹配只能进入人工确认。
 - 联系人、模板或发件邮箱变化会使旧审批失效。任务中断后重跑必须先重新读取台账，已完成步骤不得重复发送。
 
