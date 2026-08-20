@@ -5,11 +5,12 @@ description: "Use for Gmail/Outlook contact imports, Mailhub-backed multi-accoun
 
 # Codex 邮箱工作台
 
-这是一个以“先校验、后预览、再批准”为核心的 Gmail/Outlook 外联工作台。它只使用当前 Codex 中已经连接且实际可用的邮箱能力；不保存密码、OAuth token、Cookie 或真实邮箱数据，不绕过连接器，也不部署服务器。
+这是一个以“先授权、再校验、后预览、再批准”为核心的 Gmail/Outlook 外联工作台。它只使用当前 Codex 中已经连接且实际可用的邮箱能力；不保存密码、OAuth token、Cookie 或真实邮箱数据，不绕过连接器，也不部署服务器。
 
 ## 入口与模式路由
 
 - 用户首次使用或说“开始设置”时，先读取 [references/onboarding.md](references/onboarding.md)，再按需读取所选提供商的 `gmail-notes.md` 或 `outlook-notes.md`。
+- 用户需要登录、授权、切换账号或提供配置文档时，先读取 [references/authorization-guide.md](references/authorization-guide.md)。账号密码必须由用户在官方授权页、连接器弹窗或 Mailhub 本地设置页输入，不能粘贴到聊天里，也不能从文档中提取后代登录。
 - 联系人导入、去重、活动计划和发送前审批，读取 [references/campaign-workflow.md](references/campaign-workflow.md)；安全、授权或重试判断同时读取 [references/safety-and-compliance.md](references/safety-and-compliance.md)。可复制的活动 brief、联系人和 profile 模板在 `assets/` 中。
 - 用户提到 Mailhub、自托管、多域名聚合或多账号发信时，先读取 [references/mailhub-notes.md](references/mailhub-notes.md)，区分 IMAP 收信聚合、sender identity 和实际 SMTP 发信通道。
 - 新邮件扫描、回信分类、完整线程和回复草稿，读取 [references/inbox-and-replies.md](references/inbox-and-replies.md)，再读取对应提供商说明。
